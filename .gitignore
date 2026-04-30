@@ -1,0 +1,19 @@
+# Public-repo policy
+# ------------------
+# Only the README, this .gitignore, and the notebooks/ directory are tracked.
+# Everything else — project-management notes (meta/), source skeletons (src/),
+# literature notes, drafts, scripts, scaffold — stays local-only.
+#
+# To track an additional path, add an explicit `!/path` line below.
+
+# Ignore every top-level entry by default.
+/*
+
+# Allow these.
+!/.gitignore
+!/README.md
+!/notebooks/
+
+# Inside the allow-listed dirs, still ignore the usual junk.
+notebooks/.ipynb_checkpoints/
+notebooks/**/.ipynb_checkpoints/
