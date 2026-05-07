@@ -33,13 +33,14 @@ A set of Jupyter notebooks (`notebooks/01_…` → `notebooks/10_…`) that step
 | 09 | `09_causal_steering.ipynb` | Additive interventions on three case studies |
 | 10 | `10_model_comparison.ipynb` | Cross-model summary (Pythia / Llama-3 / Qwen-2.5) |
 
-Notebooks 02–10 are scaffolds; only **01** is currently fleshed out.
+Notebooks 03–10 are scaffolds; **01–02** are fleshed out.
 
 ---
 
 ## Run on Colab — no local setup needed
 
-[![Open Notebook 01 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/01_setup_and_models.ipynb)
+- [![nb01](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/01_setup_and_models.ipynb) — **01** Setup & models
+- [![nb02](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/02_emotion_word_list_and_prompts.ipynb) — **02** Emotion word list & prompts
 
 The first cell of each notebook handles installs (`pip install transformer-lens`), GPU detection, and a `WORK_DIR` for caching. For models that require a Hugging Face licence (Llama-3), set `HF_TOKEN` in **Colab Secrets** (Settings → Secrets) before running.
 
