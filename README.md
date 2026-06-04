@@ -25,15 +25,15 @@ A set of Jupyter notebooks (`notebooks/01_…` → `notebooks/10_…`) that step
 | 01 | `01_setup_and_models.ipynb` | Load a model via TransformerLens; extract residuals + attention; visualise per-layer / per-head structure |
 | 02 | `02_emotion_word_list_and_prompts.ipynb` | Source the 171-emotion list; build emotion / neutral story prompts |
 | 03 | `03_story_generation.ipynb` | Per-emotion story generation, cached |
-| 04 | `04_activation_extraction.ipynb` | Hook → mean-pool → tensors on disk |
-| 05 | `05_emotion_vectors.ipynb` | Difference-of-means → 171 emotion direction vectors per layer |
+| 04 | `04_activation_extraction.ipynb` | Probe a swappable target model → pooled features + **difference-of-means emotion vectors** (clustered) + per-story **cumulative feature timeseries** |
+| 05 | `05_emotion_vectors.ipynb` | Figures: story/emotion coverage, vector geometry (PCA + cosine), and **emotion "loading"** (emotion vector projected onto the word-by-word cumulative timeseries) |
 | 06 | `06_validation_held_out.ipynb` | Held-out scoring on EmoBank / GoEmotions |
 | 07 | `07_geometry_pca_clustering.ipynb` | PCA → align PC1/PC2 to Warriner valence/arousal; k-means clusters |
 | 08 | `08_local_vs_global.ipynb` | Multi-turn vs current-window vector activation |
 | 09 | `09_causal_steering.ipynb` | Additive interventions on three case studies |
 | 10 | `10_model_comparison.ipynb` | Cross-model summary (Pythia / Llama-3 / Qwen-2.5) |
 
-Notebooks 04–10 are scaffolds; **01–03** are fleshed out.
+Notebooks 06–10 are scaffolds; **01–05** are fleshed out.
 
 ---
 
@@ -42,10 +42,16 @@ Notebooks 04–10 are scaffolds; **01–03** are fleshed out.
 - [![nb01](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/01_setup_and_models.ipynb) — **01** Setup & models
 - [![nb02](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/02_emotion_word_list_and_prompts.ipynb) — **02** Emotion word list & prompts
 - [![nb03](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/03_story_generation.ipynb) — **03** Story generation
+- [![nb04](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/04_activation_extraction.ipynb) — **04** Activation extraction → vectors + timeseries
+- [![nb05](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/05_emotion_vectors.ipynb) — **05** Emotion-vector geometry & loading figures
 
 The first cell of each notebook handles installs (`pip install transformer-lens`), GPU detection, and a `WORK_DIR` for caching. For models that require a Hugging Face licence (Llama-3), set `HF_TOKEN` in **Colab Secrets** (Settings → Secrets) before running.
 
-**Persistent output (nb02 → nb03).** Notebooks 02 and 03 mount **Google Drive** by default on Colab and write to `/content/drive/MyDrive/EmoVecLLM/`, so the prompt manifest nb02 builds survives a runtime reset and is picked up by nb03. Everything is overridable by environment variable for head-less / HPC runs (`EMOVEC_WORK_DIR`, `EMOVEC_MOUNT_DRIVE`, `EMOVEC_GENERATOR_MODEL`, `EMOVEC_PRECISION`, `EMOVEC_BATCH_SIZE`, `EMOVEC_MAX_JOBS`, …), so the same notebooks run unchanged via `jupyter nbconvert --execute` or `papermill` on a cluster.
+**Persistent output (nb02 → nb03 → nb04 → nb05).** The pipeline notebooks mount **Google Drive** by default on Colab and write under `/content/drive/MyDrive/EmoVecLLM/`, so each stage's artefact survives a runtime reset and is picked up by the next: nb02 writes `prompts.jsonl`; nb03 the resumable `stories/…/stories.jsonl`; nb04 the `features/{spec_hash}/{target_model}/` set (`segment_features.npz`, `emotion_vectors.npz`, `cumulative_timeseries.npz`); nb05 the figures. Everything is overridable by environment variable for head-less / HPC runs (`EMOVEC_WORK_DIR`, `EMOVEC_MOUNT_DRIVE`, `EMOVEC_GENERATOR_MODEL`, `EMOVEC_TARGET_MODEL`, `EMOVEC_PRECISION`, `EMOVEC_BASELINE`, `EMOVEC_DEMO`, …), so the same notebooks run unchanged via `jupyter nbconvert --execute` or `papermill` on a cluster.
+
+**Demo / development mode.** nb04 and nb05 default to `EMOVEC_DEMO=1`: they consume *whatever* stories are on disk (even a partial generation run), default to a tiny target model (`gpt2`), cap per-emotion stories, and still emit a full set of (rough) vectors and figures. Set `EMOVEC_DEMO=0` with a real target for the science run.
+
+**Baseline / normalisation.** Emotion vectors are difference-of-means against a neutral baseline. nb04 treats any story of kind `neutral_dialogue` *or* `neutral_story` as baseline (`EMOVEC_BASELINE` = `neutral_mean` / `project_pcs` / `global_mean` / `none`), so switching from Anthropic's neutral **dialogues** to style-matched neutral **stories** needs only new rows in nb02's manifest — no code change. See nb04 §6 for the trade-offs.
 
 ### Compute footprint
 
@@ -62,7 +68,7 @@ TransformerLens converts HF weights in-place, briefly peaking at ~2× model size
 
 ## Status
 
-**Stimuli + generation online.** Notebooks 01–03 run end-to-end: 01 (model-loading + feature tour, ~30 s on T4), 02 (171 emotions × 100 topics → a frozen `prompts.jsonl` job manifest), and 03 (swappable open-weight generator → emotion stories + neutral-dialogue baseline, cached resumably to Drive). Notebooks 04–10 are placeholders being filled in as the pipeline comes online.
+**Stimuli → generation → vectors online.** Notebooks 01–05 run end-to-end: 01 (model-loading + feature tour, ~30 s on T4), 02 (171 emotions × 100 topics → a frozen `prompts.jsonl` job manifest), 03 (swappable open-weight generator → emotion stories + neutral baseline, cached resumably to Drive), 04 (probe a swappable target model → pooled features, clustered difference-of-means emotion vectors, and per-story cumulative feature timeseries — demo-mode aware), and 05 (preliminary figures: coverage, vector geometry, and emotion-loading curves). Notebooks 06–10 are placeholders being filled in as the pipeline comes online.
 
 ---
 
