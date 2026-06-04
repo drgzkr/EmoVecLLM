@@ -26,7 +26,7 @@ A set of Jupyter notebooks (`notebooks/01_…` → `notebooks/10_…`) that step
 | 02 | `02_emotion_word_list_and_prompts.ipynb` | Source the 171-emotion list; build emotion / neutral story prompts |
 | 03 | `03_story_generation.ipynb` | Per-emotion story generation, cached |
 | 04 | `04_activation_extraction.ipynb` | Probe a swappable target model → pooled features + **difference-of-means emotion vectors** (clustered) + per-story **per-step timeseries** (residual at each token × layer, from cumulatively reading the story) |
-| 05 | `05_emotion_vectors.ipynb` | Figures: story/emotion coverage, vector geometry (PCA + cosine), and **emotion "loading"** (emotion vector projected onto the token-by-token per-step timeseries) |
+| 05 | `05_emotion_vectors.ipynb` | Figures: story/emotion coverage, vector geometry (PCA + cosine), **emotion "loading"** (emotion vector projected onto the per-step timeseries), and the raw **token × feature** heatmap of one layer |
 | 06 | `06_validation_held_out.ipynb` | Held-out scoring on EmoBank / GoEmotions |
 | 07 | `07_geometry_pca_clustering.ipynb` | PCA → align PC1/PC2 to Warriner valence/arousal; k-means clusters |
 | 08 | `08_local_vs_global.ipynb` | Multi-turn vs current-window vector activation |
