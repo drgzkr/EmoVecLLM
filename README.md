@@ -33,7 +33,7 @@ A set of Jupyter notebooks (`notebooks/01_…` → `notebooks/10_…`) that step
 | 09 | `09_causal_steering.ipynb` | Additive interventions on three case studies |
 | 10 | `10_model_comparison.ipynb` | Cross-model summary (Pythia / Llama-3 / Qwen-2.5) |
 
-Notebooks 03–10 are scaffolds; **01–02** are fleshed out.
+Notebooks 04–10 are scaffolds; **01–03** are fleshed out.
 
 ---
 
@@ -41,8 +41,11 @@ Notebooks 03–10 are scaffolds; **01–02** are fleshed out.
 
 - [![nb01](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/01_setup_and_models.ipynb) — **01** Setup & models
 - [![nb02](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/02_emotion_word_list_and_prompts.ipynb) — **02** Emotion word list & prompts
+- [![nb03](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/03_story_generation.ipynb) — **03** Story generation
 
 The first cell of each notebook handles installs (`pip install transformer-lens`), GPU detection, and a `WORK_DIR` for caching. For models that require a Hugging Face licence (Llama-3), set `HF_TOKEN` in **Colab Secrets** (Settings → Secrets) before running.
+
+**Persistent output (nb02 → nb03).** Notebooks 02 and 03 mount **Google Drive** by default on Colab and write to `/content/drive/MyDrive/EmoVecLLM/`, so the prompt manifest nb02 builds survives a runtime reset and is picked up by nb03. Everything is overridable by environment variable for head-less / HPC runs (`EMOVEC_WORK_DIR`, `EMOVEC_MOUNT_DRIVE`, `EMOVEC_GENERATOR_MODEL`, `EMOVEC_PRECISION`, `EMOVEC_BATCH_SIZE`, `EMOVEC_MAX_JOBS`, …), so the same notebooks run unchanged via `jupyter nbconvert --execute` or `papermill` on a cluster.
 
 ### Compute footprint
 
@@ -59,7 +62,7 @@ TransformerLens converts HF weights in-place, briefly peaking at ~2× model size
 
 ## Status
 
-**Pre-implementation.** Notebook 01 — the model-loading + feature-extraction tour — is runnable end-to-end (~30 s on T4). Notebooks 02–10 are placeholders being filled in as the pipeline comes online.
+**Stimuli + generation online.** Notebooks 01–03 run end-to-end: 01 (model-loading + feature tour, ~30 s on T4), 02 (171 emotions × 100 topics → a frozen `prompts.jsonl` job manifest), and 03 (swappable open-weight generator → emotion stories + neutral-dialogue baseline, cached resumably to Drive). Notebooks 04–10 are placeholders being filled in as the pipeline comes online.
 
 ---
 
