@@ -22,6 +22,7 @@
 !/scripts/
 /scripts/*
 !/scripts/generate_dataset.py
+!/scripts/extract_features.py
 !/scripts/run_generate_dataset.sbatch
 !/scripts/setup_pod.sh
 !/scripts/push_results.sh

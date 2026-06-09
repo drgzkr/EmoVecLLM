@@ -56,10 +56,11 @@ cat <<'EOF'
 
 bootstrap OK ✓
 
-Full run:
-    python scripts/generate_dataset.py                     # interactive (asks model + params)
-    python scripts/generate_dataset.py --non-interactive   # head-less (uses .env)
+Pipeline on the pod:
+    python scripts/generate_dataset.py     # 1. stories  (nb03) — interactive; add --non-interactive for head-less
+    python scripts/extract_features.py     # 2. features (nb04) — emotion vectors + per-step timeseries
 
 Get results off the pod afterwards:
-    bash scripts/push_results.sh        # HF Hub upload (set HF_DATASET_REPO), or see its help
+    bash scripts/push_results.sh                       # git: commit text dataset to the repo (default)
+    RESULTS_TARGET=hf HF_DATASET_REPO=you/emovecllm-stories bash scripts/push_results.sh   # incl. binary features
 EOF

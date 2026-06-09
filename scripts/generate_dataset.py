@@ -162,6 +162,29 @@ class Resolver:
         self.log.decision(key, val, note)
         return val
 
+    def pick(self, key, cli_val, env_name, menu, default, note="") -> str:
+        """Menu picker: menu is list[(value, description)]; allows a custom paste."""
+        if cli_val is not None:
+            val = str(cli_val)
+        elif os.environ.get(env_name):
+            val = os.environ[env_name]
+        elif self.interactive:
+            self.log.log(f"\n{key} options:")
+            for i, (v, d) in enumerate(menu, 1):
+                self.log.log(f"  {i}. {v:<38} — {d}")
+            self.log.log(f"  {len(menu)+1}. (enter a custom id)")
+            raw = self._ask(f"choose 1-{len(menu)+1} or paste an id", "1")
+            if raw.isdigit() and 1 <= int(raw) <= len(menu):
+                val = menu[int(raw) - 1][0]
+            elif raw.isdigit():
+                val = self._ask("custom id", menu[0][0])
+            else:
+                val = raw
+        else:
+            val = default
+        self.log.decision(key, val, note)
+        return val
+
     def model(self) -> str:
         if self.args.model is not None:
             val = self.args.model
