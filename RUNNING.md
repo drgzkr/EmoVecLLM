@@ -12,9 +12,9 @@ pod** when finished, so you never leave a GPU idling.
 > cp .env.example .env && nano .env          # WANDB_API_KEY + RUNPOD_API_KEY
 > bash scripts/setup_pod.sh
 > # 1) lite test (~1-2 min, self-stops)
-> nohup bash scripts/test_run.sh > test_run.out 2>&1 & tail -f test_run.out
+> nohup bash scripts/run.sh > run.out 2>&1 & tail -f run.out
 > # 2) full run (self-stops)
-> nohup env PROFILE=full bash scripts/test_run.sh > full_run.out 2>&1 & tail -f full_run.out
+> nohup env PROFILE=full bash scripts/run.sh > full_run.out 2>&1 & tail -f full_run.out
 > ```
 
 ---
@@ -27,7 +27,8 @@ pod** when finished, so you never leave a GPU idling.
 | Features | `scripts/extract_features.py` | nb04 | `data/processed/features/{spec}/{target}/*.npz` |
 | Validation | nb06 (`nbconvert`) | nb06 | `features/.../validation.json` |
 
-`scripts/test_run.sh` chains all three and stops the pod afterwards.
+`scripts/run.sh` chains all three and stops the pod afterwards (an old
+`scripts/test_run.sh` alias still works).
 `scripts/setup_pod.sh` bootstraps a fresh pod. `scripts/push_results.sh` gets
 data off the pod.
 
@@ -95,8 +96,8 @@ Pure plumbing check — gpt2 for both stages, 12 jobs, short completions, small
 held-out set. Runs in ~1–2 minutes and **stops the pod itself**.
 
 ```bash
-nohup bash scripts/test_run.sh > test_run.out 2>&1 &
-tail -f test_run.out
+nohup bash scripts/run.sh > run.out 2>&1 &
+tail -f run.out
 ```
 
 `nohup … &` runs it detached, so an SSH drop can't kill it (the auto-stop still
@@ -125,7 +126,7 @@ Same script, `PROFILE=full`: Qwen2.5-7B generator, pythia-1.4b target, **all**
 4-hour watchdog. Still auto-stops.
 
 ```bash
-nohup env PROFILE=full bash scripts/test_run.sh > full_run.out 2>&1 &
+nohup env PROFILE=full bash scripts/run.sh > full_run.out 2>&1 &
 tail -f full_run.out
 ```
 
@@ -196,10 +197,10 @@ small volume-storage charge; `STOP_MODE=remove` terminates the pod entirely
 |---|---|---|
 | `WANDB_API_KEY` | all | wandb auth (the RunPod↔wandb link) |
 | `WANDB_PROJECT` / `WANDB_MODE` | all | project (`emovecllm`) / `online`·`offline`·`disabled` |
-| `RUNPOD_API_KEY` | `test_run.sh` | lets the pod stop itself |
-| `AUTO_STOP` / `STOP_MODE` | `test_run.sh` | self-stop on/off / `stop`·`remove` |
-| `MAX_RUNTIME_MIN` | `test_run.sh` | watchdog hard cap |
-| `PROFILE` | `test_run.sh` | `lite` (test) / `full` (real run) |
+| `RUNPOD_API_KEY` | `run.sh` | lets the pod stop itself |
+| `AUTO_STOP` / `STOP_MODE` | `run.sh` | self-stop on/off / `stop`·`remove` |
+| `MAX_RUNTIME_MIN` | `run.sh` | watchdog hard cap |
+| `PROFILE` | `run.sh` | `lite` (test) / `full` (real run) |
 | `EMOVEC_WORK_DIR` | all | data root (blank = repo root) |
 | `EMOVEC_GENERATOR_MODEL` / `EMOVEC_TARGET_MODEL` | gen / extract | which model |
 | `EMOVEC_PRECISION` | gen / extract | `auto`·`bf16`·`fp16`·`4bit`·`8bit` |

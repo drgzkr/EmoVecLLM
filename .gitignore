@@ -27,6 +27,7 @@
 !/scripts/run_generate_dataset.sbatch
 !/scripts/setup_pod.sh
 !/scripts/push_results.sh
+!/scripts/run.sh
 !/scripts/test_run.sh
 
 # Track the small TEXT dataset (stories / prompts / spec / manifests) so the repo
