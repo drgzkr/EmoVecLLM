@@ -19,7 +19,8 @@
 #   RUN_VALIDATION=1                 run nb06 at the end
 #   AUTO_STOP=1                      stop the pod when done (THE whole point)
 #   STOP_MODE=stop                   stop (keep volume) | remove (terminate pod)
-#   MAX_RUNTIME_MIN=90               watchdog hard cap
+#   MAX_RUNTIME_MIN=10               watchdog hard cap (raise it if the cold
+#                                    Qwen-7B download + generation needs longer)
 #   RUNPOD_API_KEY=...               needed for self-stop (RunPod Settings→API Keys)
 #   RUNPOD_POD_ID                    auto-set by RunPod
 # ---------------------------------------------------------------------------
@@ -33,7 +34,7 @@ TEST_TARGET_MODEL="${TEST_TARGET_MODEL:-EleutherAI/pythia-1.4b}"
 RUN_VALIDATION="${RUN_VALIDATION:-1}"
 AUTO_STOP="${AUTO_STOP:-1}"
 STOP_MODE="${STOP_MODE:-stop}"
-MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-90}"
+MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-10}"
 
 STATUS="OK"
 _cleaned=0
