@@ -34,7 +34,7 @@ A set of Jupyter notebooks (`notebooks/01_…` → `notebooks/10_…`) that step
 | 09 | `09_causal_steering.ipynb` | Additive interventions on three case studies |
 | 10 | `10_model_comparison.ipynb` | Cross-model summary (Pythia / Llama-3 / Qwen-2.5) |
 
-Notebooks 06–10 are scaffolds; **01–05 (+05b)** are fleshed out.
+Notebooks 07–10 are scaffolds; **01–06 (+05b)** are fleshed out.
 
 ---
 
@@ -46,12 +46,15 @@ Notebooks 06–10 are scaffolds; **01–05 (+05b)** are fleshed out.
 - [![nb04](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/04_activation_extraction.ipynb) — **04** Activation extraction → vectors + timeseries
 - [![nb05](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/05_emotion_vectors.ipynb) — **05** Emotion-vector geometry & loading figures
 - [![nb05b](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/05b_emotion_timeseries.ipynb) — **05b** Emotion timeseries of a text (vectors as decoder)
+- [![nb06](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/drgzkr/EmoVecLLM/blob/master/notebooks/06_validation_held_out.ipynb) — **06** Held-out validation (GoEmotions + EmoBank)
 
 The first cell of each notebook handles installs (`pip install transformer-lens`), GPU detection, and a `WORK_DIR` for caching. For models that require a Hugging Face licence (Llama-3), set `HF_TOKEN` in **Colab Secrets** (Settings → Secrets) before running.
 
 **Persistent output (nb02 → nb03 → nb04 → nb05).** The pipeline notebooks mount **Google Drive** by default on Colab and write under `/content/drive/MyDrive/EmoVecLLM/`, so each stage's artefact survives a runtime reset and is picked up by the next: nb02 writes `prompts.jsonl`; nb03 the resumable `stories/…/stories.jsonl`; nb04 the `features/{spec_hash}/{target_model}/` set (`segment_features.npz`, `emotion_vectors.npz`, and `cumulative_timeseries.npz` = per-story **per-step** residual `(seq, n_layers, d)`, the model's state after reading each prefix); nb05 the figures. Everything is overridable by environment variable for head-less / HPC runs (`EMOVEC_WORK_DIR`, `EMOVEC_MOUNT_DRIVE`, `EMOVEC_GENERATOR_MODEL`, `EMOVEC_TARGET_MODEL`, `EMOVEC_PRECISION`, `EMOVEC_BASELINE`, `EMOVEC_SKIP_FIRST`, `EMOVEC_DEMO`, …), so the same notebooks run unchanged via `jupyter nbconvert --execute` or `papermill` on a cluster. nb04 drops the token-0 **attention sink** by default (`EMOVEC_SKIP_FIRST=1`) so every saved embedding — pooled vectors, baseline, and per-step timeseries — is sink-free; nb05 reads this and plots honest absolute loadings.
 
 **Demo / development mode.** nb04 and nb05 default to `EMOVEC_DEMO=1`: they consume *whatever* stories are on disk (even a partial generation run), default to a tiny target model (`gpt2`), cap per-emotion stories, and still emit a full set of (rough) vectors and figures. Set `EMOVEC_DEMO=0` with a real target for the science run.
+
+**Run head-less on a cloud GPU pod.** For unattended runs on a rented GPU (e.g. RunPod), `scripts/` ships CLI ports of the heavy stages with the same env-driven config plus **Weights & Biases** progress tracking: `generate_dataset.py` (nb03) and `extract_features.py` (nb04) prompt for model + parameters, log every decision, resume on re-run, and version their outputs as wandb artifacts. `setup_pod.sh` bootstraps a fresh pod (deps + GPU/key checks + smoke test); `push_results.sh` gets results off the pod (commit the small text dataset to this repo, or upload everything to a Hugging Face dataset). Copy `.env.example` → `.env`, fill in `WANDB_API_KEY` (+ `HF_TOKEN` for gated models), and `bash scripts/setup_pod.sh`. (`run_generate_dataset.sbatch` covers SLURM clusters.)
 
 **Baseline / normalisation.** Emotion vectors are difference-of-means against a neutral baseline. nb04 treats any story of kind `neutral_dialogue` *or* `neutral_story` as baseline (`EMOVEC_BASELINE` = `neutral_mean` / `project_pcs` / `global_mean` / `none`), so switching from Anthropic's neutral **dialogues** to style-matched neutral **stories** needs only new rows in nb02's manifest — no code change. See nb04 §6 for the trade-offs.
 
