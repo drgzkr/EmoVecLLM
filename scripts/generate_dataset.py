@@ -304,7 +304,7 @@ def load_generator(name, precision, device_map, device, vram_gb, logger):
         BitsAndBytesConfig = None
 
     prec = resolve_precision(precision, device, vram_gb)
-    hf_token = os.environ.get("HF_TOKEN")
+    hf_token = os.environ.get("HF_TOKEN") or None   # empty string → unauthenticated
 
     tok = AutoTokenizer.from_pretrained(name, trust_remote_code=True, token=hf_token)
     if tok.pad_token_id is None:

@@ -205,7 +205,7 @@ def load_target(target, backend, precision, device_map, device, vram, max_tokens
         except Exception:
             BitsAndBytesConfig = None
         prec = resolve_precision(precision, device, vram)
-        hf_token = os.environ.get("HF_TOKEN")
+        hf_token = os.environ.get("HF_TOKEN") or None   # empty string → unauthenticated
         hf_tok = AutoTokenizer.from_pretrained(target, trust_remote_code=True, token=hf_token)
         kw = dict(trust_remote_code=True, token=hf_token, output_hidden_states=True)
         if device == "cpu":
