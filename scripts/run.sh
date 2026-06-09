@@ -24,8 +24,8 @@
 #   RUN_VALIDATION=1                 run nb06 at the end
 #   AUTO_STOP=1                      stop the pod when done (THE whole point)
 #   STOP_MODE=stop                   stop (keep volume) | remove (terminate pod)
-#   MAX_RUNTIME_MIN=10               watchdog hard cap (raise it if you point the
-#                                    knobs at bigger models that need a download)
+#   MAX_RUNTIME_MIN                  watchdog cap; default per profile (lite=10,
+#                                    full=240). Set to override BOTH profiles.
 #   RUNPOD_API_KEY=...               needed for self-stop (RunPod Settings→API Keys)
 #   RUNPOD_POD_ID                    auto-set by RunPod
 # ---------------------------------------------------------------------------
@@ -109,9 +109,10 @@ trap 'exit 129' HUP    # closing a terminal w/o nohup still runs cleanup → sel
 WATCHDOG_SENTINEL="$(mktemp)"
 ( sleep $((MAX_RUNTIME_MIN * 60))
   [[ -e "$WATCHDOG_SENTINEL" ]] || exit 0
-  echo "!! WATCHDOG: exceeded ${MAX_RUNTIME_MIN} min — forcing shutdown"
-  kill -TERM $$ 2>/dev/null ) &
-WATCHDOG_PID=$!
+  echo "!! WATCHDOG: exceeded ${MAX_RUNTIME_MIN} min — forcing pod shutdown"
+  STATUS="WATCHDOG TIMEOUT (${MAX_RUNTIME_MIN}m)"
+  stop_pod ) &     # stop the pod directly — a busy foreground stage would otherwise
+WATCHDOG_PID=$!     # defer a parent-signalling trap until that stage finishes
 
 die() { STATUS="FAILED: $*"; echo "!! $*"; exit 1; }
 

@@ -199,7 +199,7 @@ small volume-storage charge; `STOP_MODE=remove` terminates the pod entirely
 | `WANDB_PROJECT` / `WANDB_MODE` | all | project (`emovecllm`) / `online`·`offline`·`disabled` |
 | `RUNPOD_API_KEY` | `run.sh` | lets the pod stop itself |
 | `AUTO_STOP` / `STOP_MODE` | `run.sh` | self-stop on/off / `stop`·`remove` |
-| `MAX_RUNTIME_MIN` | `run.sh` | watchdog hard cap |
+| `MAX_RUNTIME_MIN` | `run.sh` | watchdog cap; default per profile (lite=10, full=240). Setting it overrides both — don't pin it to 10 |
 | `PROFILE` | `run.sh` | `lite` (test) / `full` (real run) |
 | `EMOVEC_WORK_DIR` | all | data root (blank = repo root) |
 | `EMOVEC_GENERATOR_MODEL` / `EMOVEC_TARGET_MODEL` | gen / extract | which model |
