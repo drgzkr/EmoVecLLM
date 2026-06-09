@@ -1,0 +1,34 @@
+# Core
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.3
+pandas>=2.0
+matplotlib>=3.7
+seaborn>=0.12
+tqdm>=4.60
+h5py>=3.8
+pyyaml>=6.0
+torch>=2.2
+transformers>=4.40
+transformer-lens>=2.0
+accelerate>=0.30
+datasets>=2.18
+einops>=0.7
+
+# Dev
+pytest>=7.4
+pytest-cov
+jupyter>=1.0
+jupyterlab>=4.0
+ipykernel
+black
+ruff
+
+# Nnsight
+nnsight>=0.3
+
+# Quantization (Colab T4 / smaller GPUs — 4-bit / 8-bit Llama & Qwen)
+bitsandbytes>=0.43
+
+# Experiment tracking (scripts/generate_dataset.py — remote-run progress)
+wandb>=0.17
