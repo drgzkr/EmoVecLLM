@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
 # ===========================================================================
-# push_results.sh — get the generated data OFF the pod and into durable storage
+# push_results.sh — get the generated data OFF the pod into durable storage
 # ===========================================================================
-# Primary path: push to a Hugging Face Hub *dataset* repo (private), the
-# canonical cross-platform store — nb04 can then pull it from any pod/Colab.
+# RESULTS_TARGET selects where (default: git):
 #
-#     export HF_DATASET_REPO=drgzkr/emovecllm-stories   # or set in .env
-#     bash scripts/push_results.sh
+#   git  — commit the small TEXT dataset (stories/prompts/spec/manifests) to
+#          THIS repo and push. Binary feature .npz are gitignored (use hf/wandb).
+#          Needs the repo cloned on the pod with push creds, OR run this from
+#          your laptop after the data has synced down.
 #
-# Other ways to grab results are printed below if HF_DATASET_REPO is unset.
-# Note: wandb already captures stories.jsonl as a versioned Artifact on each
-# online run — this script is for the canonical dataset copy / large feature
-# files that you don't want living only in wandb.
+#   hf   — upload all of data/processed (incl. binary features) to a Hugging
+#          Face Hub dataset repo. Set HF_DATASET_REPO + a write HF_TOKEN.
+#
+# Usage:
+#     bash scripts/push_results.sh                       # git (default)
+#     RESULTS_TARGET=hf HF_DATASET_REPO=you/emovecllm-stories bash scripts/push_results.sh
+#
+# Reminder: every ONLINE generation run already logs stories.jsonl as a versioned
+# wandb Artifact, so this script is for the canonical copy / large feature files.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -19,37 +25,44 @@ cd "$(dirname "$0")/.."
 
 WORK_DIR="${EMOVEC_WORK_DIR:-$(pwd)}"
 DATA="${WORK_DIR}/data/processed"
-REPO="${HF_DATASET_REPO:-}"
+TARGET="${RESULTS_TARGET:-git}"
 
-if [[ ! -d "$DATA" ]]; then
-    echo "no data at $DATA — run the generation first."; exit 1
-fi
+[[ -d "$DATA" ]] || { echo "no data at $DATA — run the generation first."; exit 1; }
 
-if [[ -z "$REPO" ]]; then
-    cat <<EOF
-HF_DATASET_REPO is unset, so nothing was uploaded. Pick one:
-
-  1) Hugging Face Hub (recommended, durable, versioned):
-       export HF_DATASET_REPO=<user>/emovecllm-stories
-       export HF_TOKEN=hf_...        # write-scoped token
-       bash scripts/push_results.sh
-
-  2) RunPod built-in transfer (no setup, one-off):
-       runpodctl send "$DATA"        # then run 'runpodctl receive <code>' on your laptop
-
-  3) rsync over SSH (RunPod gives an SSH endpoint):
-       rsync -avz -e ssh root@<pod-ip>:"$DATA" ./data_from_pod/
+case "$TARGET" in
+  git)
+    REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+    if [[ -z "$REPO_ROOT" || "$DATA" != "$REPO_ROOT/data/processed" ]]; then
+        cat <<EOF
+git mode needs the data to live INSIDE this repo's working tree.
+  data : $DATA
+  repo : ${REPO_ROOT:-<not a git repo>}
+Fix: clone the repo onto your persistent volume and leave EMOVEC_WORK_DIR blank
+(so data/processed is the repo's own), or use RESULTS_TARGET=hf instead.
 EOF
-    exit 1
-fi
+        exit 1
+    fi
+    echo "staging text dataset (binaries are gitignored)…"
+    git add data/processed
+    if git diff --cached --quiet; then echo "no new tracked data to commit."; exit 0; fi
+    git commit -q -m "data: generation output ($(date -Is))"
+    git push origin "$(git rev-parse --abbrev-ref HEAD)"
+    echo "pushed text dataset to $(git remote get-url origin)"
+    ;;
+  hf)
+    REPO="${HF_DATASET_REPO:-}"
+    [[ -n "$REPO" ]]        || { echo "set HF_DATASET_REPO=<user>/emovecllm-stories"; exit 1; }
+    [[ -n "${HF_TOKEN:-}" ]] || { echo "HF_TOKEN unset — need a write token"; exit 1; }
+    pip install -q huggingface_hub
+    echo "uploading $DATA → hf://datasets/$REPO/data/processed"
+    huggingface-cli upload "$REPO" "$DATA" "data/processed" \
+        --repo-type dataset --token "$HF_TOKEN" --commit-message "EmoVecLLM data upload"
+    echo "done → https://huggingface.co/datasets/$REPO"
+    ;;
+  *)
+    echo "unknown RESULTS_TARGET='$TARGET' (use git|hf)"; exit 1 ;;
+esac
 
-if [[ -z "${HF_TOKEN:-}" ]]; then
-    echo "HF_TOKEN unset — need a write token to push to the Hub."; exit 1
-fi
-
-pip install -q huggingface_hub
-echo "uploading $DATA  →  hf://datasets/$REPO/data/processed"
-# Creates the (private) dataset repo on first push; re-runs upload only changes.
-huggingface-cli upload "$REPO" "$DATA" "data/processed" \
-    --repo-type dataset --token "$HF_TOKEN" --commit-message "EmoVecLLM data upload"
-echo "done → https://huggingface.co/datasets/$REPO"
+# Manual one-off alternatives (no setup):
+#   runpodctl send "$DATA"                                  # then 'runpodctl receive <code>'
+#   rsync -avz -e ssh root@<pod-ip>:"$DATA" ./data_from_pod/

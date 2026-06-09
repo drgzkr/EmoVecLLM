@@ -26,6 +26,16 @@
 !/scripts/setup_pod.sh
 !/scripts/push_results.sh
 
+# Track the small TEXT dataset (stories / prompts / spec / manifests) so the repo
+# is self-contained, but keep large BINARY feature arrays out (→ HF Hub / wandb).
+!/data/
+/data/*
+!/data/processed/
+*.npz
+*.npy
+*.h5
+*.hdf5
+
 # Inside the allow-listed dirs, still ignore the usual junk.
 notebooks/.ipynb_checkpoints/
 notebooks/**/.ipynb_checkpoints/
