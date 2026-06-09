@@ -556,6 +556,17 @@ def main(argv=None):
     wb.summary(used_precision=used_precision, device=device,
                input_device=str(input_device))
 
+    # Clamp generation length to the model's context window (gpt2 etc. are 1024)
+    # so prompt+new tokens can't overflow it — overflow throws a cryptic CUDA
+    # device-side assert (position-embedding index out of range), not a clear error.
+    _ctx = (getattr(model_obj.config, "n_positions", None)
+            or getattr(model_obj.config, "max_position_embeddings", None))
+    if _ctx and max_new_tokens > _ctx - 128:
+        _clamped = max(16, _ctx - 256)
+        logger.log(f"  clamping max_new_tokens {max_new_tokens} → {_clamped} "
+                   f"(model context {_ctx})")
+        max_new_tokens = _clamped
+
     # ── Generation closures (need tokenizer/model in scope) ─────────────────
     def build_chat_text(system_prompt, user):
         if getattr(tokenizer, "chat_template", None):

@@ -50,6 +50,7 @@ fi
 # Forces gpt2 + manifest build so this is quick regardless of .env settings.
 echo "== smoke test: building manifest + generating 4 jobs on gpt2 =="
 EMOVEC_SMOKE_TEST=1 EMOVEC_BUILD_MANIFEST=1 EMOVEC_GENERATOR_MODEL=gpt2 \
+    EMOVEC_MAX_NEW_TOKENS=64 \
     python scripts/generate_dataset.py --non-interactive --wandb-mode disabled
 
 cat <<'EOF'
