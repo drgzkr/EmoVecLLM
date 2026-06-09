@@ -26,6 +26,7 @@
 !/scripts/run_generate_dataset.sbatch
 !/scripts/setup_pod.sh
 !/scripts/push_results.sh
+!/scripts/test_run.sh
 
 # Track the small TEXT dataset (stories / prompts / spec / manifests) so the repo
 # is self-contained, but keep large BINARY feature arrays out (→ HF Hub / wandb).
