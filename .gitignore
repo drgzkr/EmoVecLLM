@@ -15,6 +15,7 @@
 !/notebooks/
 !/requirements.txt
 !/.env.example
+!/RUNNING.md
 
 # Track the remote dataset-generation runner + its SLURM wrapper, but keep the
 # rest of scripts/ (notebook builders, watchers) local-only. Re-include the dir,

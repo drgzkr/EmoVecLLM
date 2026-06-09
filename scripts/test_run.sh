@@ -12,11 +12,13 @@
 #     nohup bash scripts/test_run.sh > test_run.out 2>&1 &
 #     tail -f test_run.out
 #
-# Knobs (env or .env) — defaults are a tiny plumbing test (~1-2 min):
-#   TEST_MAX_JOBS=12                 generation jobs for the pilot
-#   TEST_GEN_MODEL=gpt2              tiny — no big download
-#   TEST_TARGET_MODEL=gpt2           tiny — probed model
-#   RUN_VALIDATION=1                 run nb06 at the end (small held-out set)
+# Knobs (env or .env):
+#   PROFILE=lite|full                lite (default) = tiny plumbing test (~1-2 min);
+#                                    full = the real run (Qwen-7B + pythia, all jobs)
+#   TEST_MAX_JOBS=12                 generation jobs (lite 12 / full 0 = all)
+#   TEST_GEN_MODEL=gpt2              generator (lite gpt2 / full Qwen2.5-7B-Instruct)
+#   TEST_TARGET_MODEL=gpt2           probed model (lite gpt2 / full pythia-1.4b)
+#   RUN_VALIDATION=1                 run nb06 at the end
 #   AUTO_STOP=1                      stop the pod when done (THE whole point)
 #   STOP_MODE=stop                   stop (keep volume) | remove (terminate pod)
 #   MAX_RUNTIME_MIN=10               watchdog hard cap (raise it if you point the
@@ -28,20 +30,30 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 [[ -f .env ]] && { set -a; source .env; set +a; }
 
-# Defaults are deliberately TINY — this is a plumbing test (does every system
-# work + does the pod stop itself?), not a science run. The stories will be junk
-# and the metrics near-chance; that's expected. Run the full pipeline straight
-# after with generate_dataset.py / extract_features.py (real models, no caps).
-TEST_MAX_JOBS="${TEST_MAX_JOBS:-12}"
-TEST_GEN_MODEL="${TEST_GEN_MODEL:-gpt2}"
-TEST_TARGET_MODEL="${TEST_TARGET_MODEL:-gpt2}"
+# PROFILE=lite (default): tiny plumbing test — does every system work + does the
+#   pod stop itself? gpt2 both stages, few jobs, short completions; ~1-2 min. The
+#   stories are junk and the metrics near-chance — that's expected.
+# PROFILE=full: the real run — Qwen-7B generator, pythia-1.4b target, ALL jobs,
+#   spec-default completion length, full held-out set, demo off. Same auto-stop.
+PROFILE="${PROFILE:-lite}"
 RUN_VALIDATION="${RUN_VALIDATION:-1}"
-# Keep every stage fast: short completions + a small held-out set for nb06.
-: "${EMOVEC_MAX_NEW_TOKENS:=128}"; export EMOVEC_MAX_NEW_TOKENS
-: "${EMOVEC_N_HELDOUT:=50}";        export EMOVEC_N_HELDOUT
 AUTO_STOP="${AUTO_STOP:-1}"
 STOP_MODE="${STOP_MODE:-stop}"
-MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-10}"
+if [[ "$PROFILE" == "full" ]]; then
+    TEST_MAX_JOBS="${TEST_MAX_JOBS:-0}"              # 0 = all pending jobs
+    TEST_GEN_MODEL="${TEST_GEN_MODEL:-Qwen/Qwen2.5-7B-Instruct}"
+    TEST_TARGET_MODEL="${TEST_TARGET_MODEL:-EleutherAI/pythia-1.4b}"
+    MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-240}"
+    export EMOVEC_DEMO=0                             # full coverage, no per-emotion cap
+    # completion length + held-out size stay at spec / notebook defaults
+else
+    TEST_MAX_JOBS="${TEST_MAX_JOBS:-12}"
+    TEST_GEN_MODEL="${TEST_GEN_MODEL:-gpt2}"
+    TEST_TARGET_MODEL="${TEST_TARGET_MODEL:-gpt2}"
+    MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-10}"
+    : "${EMOVEC_MAX_NEW_TOKENS:=128}"; export EMOVEC_MAX_NEW_TOKENS   # short completions
+    : "${EMOVEC_N_HELDOUT:=50}";        export EMOVEC_N_HELDOUT       # small nb06 set
+fi
 
 STATUS="OK"
 _cleaned=0
