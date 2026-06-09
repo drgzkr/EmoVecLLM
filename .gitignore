@@ -14,6 +14,14 @@
 !/README.md
 !/notebooks/
 
+# Track the remote dataset-generation runner + its SLURM wrapper, but keep the
+# rest of scripts/ (notebook builders, watchers) local-only. Re-include the dir,
+# re-ignore its contents, then allow-list just these two files.
+!/scripts/
+/scripts/*
+!/scripts/generate_dataset.py
+!/scripts/run_generate_dataset.sbatch
+
 # Inside the allow-listed dirs, still ignore the usual junk.
 notebooks/.ipynb_checkpoints/
 notebooks/**/.ipynb_checkpoints/
