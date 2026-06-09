@@ -101,6 +101,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+trap 'exit 129' HUP    # closing a terminal w/o nohup still runs cleanup → self-stop
 
 # Watchdog: force shutdown if the run hangs past the cap. The sentinel file is
 # removed by cleanup, so an orphaned watchdog that fires *after* we've exited
