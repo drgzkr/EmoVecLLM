@@ -23,6 +23,8 @@
 /scripts/*
 !/scripts/generate_dataset.py
 !/scripts/run_generate_dataset.sbatch
+!/scripts/setup_pod.sh
+!/scripts/push_results.sh
 
 # Inside the allow-listed dirs, still ignore the usual junk.
 notebooks/.ipynb_checkpoints/

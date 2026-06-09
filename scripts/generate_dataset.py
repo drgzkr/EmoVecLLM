@@ -358,6 +358,16 @@ class Wandb:
             tbl.add_data(r["kind"], r.get("emotion"), r["topic"], r["n_segments"], seg)
         self.wb.log({"samples": tbl})
 
+    def log_artifact(self, name, atype, files, metadata=None):
+        """Version the generated dataset alongside the run (provenance + egress)."""
+        if self.run is None:
+            return
+        art = self.wb.Artifact(name, type=atype, metadata=metadata or {})
+        for f in files:
+            if Path(f).exists():
+                art.add_file(str(f))
+        self.run.log_artifact(art)
+
     def finish(self):
         if self.run is not None:
             self.run.finish()
@@ -639,6 +649,11 @@ def main(argv=None):
     wb.summary(coverage=coverage, n_job_outputs=len(recs), n_segments_total=n_seg,
                final_leak_rate=final_leak, runtime_min=dt / 60)
     wb.sample_table([r for r in recs if r["kind"] == "emotion_story"])
+    wb.log_artifact(
+        f"stories-{spec_hash}-{safe_name(model)}", "dataset",
+        [stories_path, out_dir / "run_manifest.json", out_dir / "run_config.json"],
+        metadata={"spec_hash": spec_hash, "model": model, "coverage": coverage,
+                  "n_job_outputs": len(recs), "n_segments_total": n_seg})
     wb.finish()
 
     logger.log(f"\ncoverage: {done}/{len(jobs)} jobs ({coverage:.1%})  |  "
