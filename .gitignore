@@ -27,6 +27,7 @@
 !/scripts/run_generate_dataset.sbatch
 !/scripts/setup_pod.sh
 !/scripts/push_results.sh
+!/scripts/push_artifact.py
 !/scripts/run.sh
 !/scripts/test_run.sh
 
