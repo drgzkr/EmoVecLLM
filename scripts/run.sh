@@ -12,8 +12,11 @@
 # Run it detached so an SSH drop can't kill it (the trap still stops the pod):
 #     cp .env.example .env   # set WANDB_API_KEY, RUNPOD_API_KEY, AUTO_STOP=1
 #     nohup bash scripts/run.sh > run.out 2>&1 &              # lite test
-#     nohup env PROFILE=full bash scripts/run.sh > run.out 2>&1 &   # full run
+#     nohup bash scripts/run.sh full > run.out 2>&1 &         # full run
+#     nohup bash scripts/run.sh extract > run.out 2>&1 &      # extract-only
 #     tail -f run.out
+# The first argument is the profile (preferred — survives nohup/env mishaps);
+# PROFILE=... in the environment still works if no argument is given.
 #
 # Knobs (env or .env):
 #   PROFILE=lite|full                lite (default) = tiny plumbing test (~1-2 min);
@@ -41,7 +44,9 @@ cd "$(dirname "$0")/.."
 # PROFILE=extract: SKIP generation (stories must already exist); extract features
 #   on TEST_TARGET_MODEL (default Qwen-7B) + validate. For probing a real model
 #   on an already-generated dataset, incl. extra targets later.
-PROFILE="${PROFILE:-lite}"
+PROFILE="${1:-${PROFILE:-lite}}"
+case "$PROFILE" in lite|full|extract) ;; *) echo "!! unknown profile '$PROFILE' (use lite|full|extract)"; exit 2;; esac
+echo ">>> PROFILE=$PROFILE"
 RUN_VALIDATION="${RUN_VALIDATION:-1}"
 AUTO_STOP="${AUTO_STOP:-1}"
 STOP_MODE="${STOP_MODE:-stop}"

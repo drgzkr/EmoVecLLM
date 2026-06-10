@@ -14,8 +14,12 @@ pod** when finished, so you never leave a GPU idling.
 > # 1) lite test (~1-2 min, self-stops)
 > nohup bash scripts/run.sh > run.out 2>&1 & tail -f run.out
 > # 2) full run (self-stops)
-> nohup env PROFILE=full bash scripts/run.sh > full_run.out 2>&1 & tail -f full_run.out
+> nohup bash scripts/run.sh full > full_run.out 2>&1 & tail -f full_run.out
 > ```
+>
+> The profile is the **first argument** (`lite`/`full`/`extract`); with no
+> argument you get `lite`. The log's first line echoes `>>> PROFILE=…` —
+> check it before walking away.
 
 ---
 
@@ -126,9 +130,13 @@ Same script, `PROFILE=full`: Qwen2.5-7B generator, pythia-1.4b target, **all**
 4-hour watchdog. Still auto-stops.
 
 ```bash
-nohup env PROFILE=full bash scripts/run.sh > full_run.out 2>&1 &
+nohup bash scripts/run.sh full > full_run.out 2>&1 &
 tail -f full_run.out
 ```
+
+(`PROFILE=full` in the environment still works, but the argument form can't be
+lost by `nohup`/`env` quoting mishaps — if the profile doesn't reach the
+script you silently get the gpt2 lite test instead.)
 
 First run downloads Qwen-7B (~15 GB, one-time on the volume). Expect roughly
 **1–2 h on a 4090** for generation + a faster extraction pass; watch live on
@@ -160,10 +168,13 @@ The Qwen dataset (`data/processed/.../stories.jsonl`) **ships with the repo**, s
 on a fresh pod a plain `git clone` already has the stories — just extract:
 
 ```bash
-nohup env PROFILE=extract TEST_TARGET_MODEL=Qwen/Qwen2.5-7B-Instruct \
-    bash scripts/run.sh > run.out 2>&1 &
+nohup bash scripts/run.sh extract > run.out 2>&1 &
 tail -f run.out
 ```
+
+The target defaults to Qwen-7B under this profile. **Verify the first log line
+says `>>> PROFILE=extract`** — if it says `lite`, the profile didn't get
+through and you'd be probing gpt2 with demo caps.
 
 Add more targets by re-running with a different `TEST_TARGET_MODEL`
 (e.g. `EleutherAI/pythia-1.4b`); outputs are keyed by target so they coexist.
@@ -222,7 +233,7 @@ small volume-storage charge; `STOP_MODE=remove` terminates the pod entirely
 | `RUNPOD_API_KEY` | `run.sh` | lets the pod stop itself |
 | `AUTO_STOP` / `STOP_MODE` | `run.sh` | self-stop on/off / `stop`·`remove` |
 | `MAX_RUNTIME_MIN` | `run.sh` | watchdog cap; default per profile (lite=10, full=240). Setting it overrides both — don't pin it to 10 |
-| `PROFILE` | `run.sh` | `lite` (test) / `full` (real run) |
+| `PROFILE` | `run.sh` | `lite` (test) / `full` (real run) / `extract` (probe-only) — prefer the argument form `bash scripts/run.sh <profile>` |
 | `EMOVEC_WORK_DIR` | all | data root (blank = repo root) |
 | `EMOVEC_GENERATOR_MODEL` / `EMOVEC_TARGET_MODEL` | gen / extract | which model |
 | `EMOVEC_PRECISION` | gen / extract | `auto`·`bf16`·`fp16`·`4bit`·`8bit` |
