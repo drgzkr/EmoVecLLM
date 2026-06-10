@@ -162,6 +162,11 @@ if [[ "$RUN_VALIDATION" == "1" ]]; then
         jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=1800 \
         --output-dir /tmp notebooks/06_validation_held_out.ipynb \
         || echo "WARN: validation failed (non-fatal) — features are still saved."
+    # echo the numbers into THIS log — the pod stops itself right after, so the
+    # live tail is the one place they're guaranteed to be seen
+    for f in data/processed/features/*/"${TEST_TARGET_MODEL//\//_}"/validation.json; do
+        [[ -f "$f" ]] && { banner "validation.json ($f)"; cat "$f"; echo; }
+    done
 fi
 
 banner "run complete ✓"
