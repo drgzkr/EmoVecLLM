@@ -150,6 +150,30 @@ runpodctl stop pod "$RUNPOD_POD_ID"     # stop billing when finished
 Either path: both CLIs are interactive if you drop `--non-interactive` (they'll
 prompt for model + parameters).
 
+### Extract-only on an existing dataset (probe a real model, e.g. Qwen)
+
+`PROFILE=extract` **skips generation** and probes `TEST_TARGET_MODEL` (default
+Qwen-7B), then validates and self-stops — for getting real features on a dataset
+you already generated, and for adding extra target models later.
+
+On a **fresh** pod the stories aren't present, so restore them first from the
+wandb artifact (no re-generation), then run extract:
+
+```bash
+# 1. restore the generated stories from wandb into the path the CLI expects
+SPEC=f97f2b0c9968 ; GEN=Qwen_Qwen2.5-7B-Instruct
+wandb artifact get "d-gozukara-university-of-amsterdam/emovecllm/stories-${SPEC}-${GEN}:latest" \
+    --root "data/processed/stories/${SPEC}/${GEN}"
+
+# 2. extract on the real target + validate, self-stopping
+nohup env PROFILE=extract TEST_TARGET_MODEL=Qwen/Qwen2.5-7B-Instruct \
+    bash scripts/run.sh > run.out 2>&1 &
+tail -f run.out
+```
+
+Add more targets by re-running step 2 with a different `TEST_TARGET_MODEL`
+(e.g. `EleutherAI/pythia-1.4b`); outputs are keyed by target so they coexist.
+
 ---
 
 ## 6. Get the results out

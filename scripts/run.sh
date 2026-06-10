@@ -38,10 +38,14 @@ cd "$(dirname "$0")/.."
 #   stories are junk and the metrics near-chance — that's expected.
 # PROFILE=full: the real run — Qwen-7B generator, pythia-1.4b target, ALL jobs,
 #   spec-default completion length, full held-out set, demo off. Same auto-stop.
+# PROFILE=extract: SKIP generation (stories must already exist); extract features
+#   on TEST_TARGET_MODEL (default Qwen-7B) + validate. For probing a real model
+#   on an already-generated dataset, incl. extra targets later.
 PROFILE="${PROFILE:-lite}"
 RUN_VALIDATION="${RUN_VALIDATION:-1}"
 AUTO_STOP="${AUTO_STOP:-1}"
 STOP_MODE="${STOP_MODE:-stop}"
+SKIP_GENERATE=0
 if [[ "$PROFILE" == "full" ]]; then
     TEST_MAX_JOBS="${TEST_MAX_JOBS:-0}"              # 0 = all pending jobs
     TEST_GEN_MODEL="${TEST_GEN_MODEL:-Qwen/Qwen2.5-7B-Instruct}"
@@ -49,6 +53,11 @@ if [[ "$PROFILE" == "full" ]]; then
     MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-240}"
     export EMOVEC_DEMO=0                             # full coverage, no per-emotion cap
     # completion length + held-out size stay at spec / notebook defaults
+elif [[ "$PROFILE" == "extract" ]]; then
+    SKIP_GENERATE=1                                  # stories already exist; probe only
+    TEST_TARGET_MODEL="${TEST_TARGET_MODEL:-Qwen/Qwen2.5-7B-Instruct}"
+    MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-120}"
+    export EMOVEC_DEMO=0                             # full coverage, no per-emotion cap
 else
     TEST_MAX_JOBS="${TEST_MAX_JOBS:-12}"
     TEST_GEN_MODEL="${TEST_GEN_MODEL:-gpt2}"
@@ -125,10 +134,14 @@ if [[ "${WANDB_MODE:-online}" == "online" && -z "${WANDB_API_KEY:-}" ]]; then
     echo "WARN: WANDB_API_KEY unset & online — runs may not log. (set it in .env)"
 fi
 
-# ── 1. Generate (small) ─────────────────────────────────────────────────────
-banner "1. generate ($TEST_MAX_JOBS jobs, $TEST_GEN_MODEL)"
-EMOVEC_BUILD_MANIFEST=1 python scripts/generate_dataset.py --non-interactive \
-    --model "$TEST_GEN_MODEL" --max-jobs "$TEST_MAX_JOBS" || die "generation failed"
+# ── 1. Generate ─────────────────────────────────────────────────────────────
+if [[ "$SKIP_GENERATE" == "1" ]]; then
+    banner "1. generate — SKIPPED (PROFILE=extract; using existing stories)"
+else
+    banner "1. generate ($TEST_MAX_JOBS jobs, $TEST_GEN_MODEL)"
+    EMOVEC_BUILD_MANIFEST=1 python scripts/generate_dataset.py --non-interactive \
+        --model "$TEST_GEN_MODEL" --max-jobs "$TEST_MAX_JOBS" || die "generation failed"
+fi
 
 # ── 2. Extract features ─────────────────────────────────────────────────────
 banner "2. extract features ($TEST_TARGET_MODEL)"
@@ -144,5 +157,5 @@ if [[ "$RUN_VALIDATION" == "1" ]]; then
         || echo "WARN: validation failed (non-fatal) — features are still saved."
 fi
 
-banner "pilot complete ✓"
+banner "run complete ✓"
 # EXIT trap → cleanup → stop_pod
