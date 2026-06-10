@@ -1,0 +1,11 @@
+{
+  "spec_hash": "f97f2b0c9968",
+  "generator_model": "Qwen/Qwen2.5-7B-Instruct",
+  "n_jobs": 613,
+  "n_outputs_expected": 3065,
+  "kind_counts": {
+    "emotion_story": 513,
+    "neutral_dialogue": 100
+  },
+  "prompts_file": "/workspace/EmoVecLLM/data/processed/prompts.jsonl"
+}

@@ -1,0 +1,15 @@
+{
+  "spec_hash": "f97f2b0c9968",
+  "generator_model": "Qwen/Qwen2.5-7B-Instruct",
+  "precision": "bf16",
+  "stories_file": "/workspace/EmoVecLLM/data/processed/stories/f97f2b0c9968/Qwen_Qwen2.5-7B-Instruct/stories.jsonl",
+  "n_job_outputs": 613,
+  "n_segments_total": 4239,
+  "by_kind": {
+    "emotion_story": 513,
+    "neutral_dialogue": 100
+  },
+  "n_jobs_in_manifest": 613,
+  "coverage": 1.0,
+  "updated": "2026-06-09T22:28:21"
+}
