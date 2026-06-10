@@ -51,12 +51,14 @@ if [[ "$PROFILE" == "full" ]]; then
     TEST_GEN_MODEL="${TEST_GEN_MODEL:-Qwen/Qwen2.5-7B-Instruct}"
     TEST_TARGET_MODEL="${TEST_TARGET_MODEL:-EleutherAI/pythia-1.4b}"
     MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-240}"
+    (( MAX_RUNTIME_MIN < 240 )) && { echo "note: raising watchdog ${MAX_RUNTIME_MIN}→240m (full floor; ignoring a smaller .env value)"; MAX_RUNTIME_MIN=240; }
     export EMOVEC_DEMO=0                             # full coverage, no per-emotion cap
     # completion length + held-out size stay at spec / notebook defaults
 elif [[ "$PROFILE" == "extract" ]]; then
     SKIP_GENERATE=1                                  # stories already exist; probe only
     TEST_TARGET_MODEL="${TEST_TARGET_MODEL:-Qwen/Qwen2.5-7B-Instruct}"
     MAX_RUNTIME_MIN="${MAX_RUNTIME_MIN:-120}"
+    (( MAX_RUNTIME_MIN < 120 )) && { echo "note: raising watchdog ${MAX_RUNTIME_MIN}→120m (extract floor; ignoring a smaller .env value)"; MAX_RUNTIME_MIN=120; }
     export EMOVEC_DEMO=0                             # full coverage, no per-emotion cap
 else
     TEST_MAX_JOBS="${TEST_MAX_JOBS:-12}"
