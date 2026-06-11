@@ -44,3 +44,4 @@
 # Inside the allow-listed dirs, still ignore the usual junk.
 notebooks/.ipynb_checkpoints/
 notebooks/**/.ipynb_checkpoints/
+.piptmp/

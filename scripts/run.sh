@@ -34,7 +34,14 @@
 # ---------------------------------------------------------------------------
 set -uo pipefail
 cd "$(dirname "$0")/.."
+_RUNTIME_POD_ID="${RUNPOD_POD_ID:-}"   # the live pod's ID, injected by RunPod
 [[ -f .env ]] && { set -a; source .env; set +a; }
+# A persisted .env can carry the PREVIOUS pod's RUNPOD_POD_ID — self-stop would
+# then target a dead pod and leave THIS one billing. The runtime value wins.
+if [[ -n "$_RUNTIME_POD_ID" && "${RUNPOD_POD_ID:-}" != "$_RUNTIME_POD_ID" ]]; then
+    echo ">>> ignoring stale RUNPOD_POD_ID from .env (${RUNPOD_POD_ID:-unset}); this pod is $_RUNTIME_POD_ID"
+    RUNPOD_POD_ID="$_RUNTIME_POD_ID"
+fi
 
 # PROFILE=lite (default): tiny plumbing test — does every system work + does the
 #   pod stop itself? gpt2 both stages, few jobs, short completions; ~1-2 min. The
@@ -135,7 +142,13 @@ die() { STATUS="FAILED: $*"; echo "!! $*"; exit 1; }
 # ── 0. Deps (skip if already present) ───────────────────────────────────────
 banner "0. environment"
 python -c "import torch, transformers" 2>/dev/null || {
-    echo "installing requirements…"; pip install -q -r requirements.txt wandb || die "pip install failed"; }
+    echo "installing requirements…"
+    # pip's tmp + cache default to RAM-backed paths on these pods → OOM-kill on
+    # big wheels (torch). Point both at the persistent volume and skip the cache.
+    PIPTMP="$(pwd)/.piptmp"; mkdir -p "$PIPTMP"
+    TMPDIR="$PIPTMP" pip install -q --no-cache-dir -r requirements.txt wandb \
+        || die "pip install failed"
+    rm -rf "$PIPTMP"; }
 python -c "import torch; print('cuda:', torch.cuda.is_available())" || die "torch import failed"
 if [[ "${WANDB_MODE:-online}" == "online" && -z "${WANDB_API_KEY:-}" ]]; then
     echo "WARN: WANDB_API_KEY unset & online — runs may not log. (set it in .env)"
