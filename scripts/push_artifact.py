@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Upload a results directory as a wandb artifact — safe for huge files.
+"""Upload a results directory as a wandb artifact — safe for huge files on
+RAM-starved pods.
 
-Replacement for `wandb artifact put`, which gets OOM-killed on multi-GB
-feature files (as does adding them whole on RAM-limited pods). Files larger
-than --max-part-mb are stream-split into numbered .partNNNN chunks (constant
-memory) and uploaded as parts; reassemble after download with --reassemble.
+`wandb artifact put` (and naive add_file loops) get OOM-killed on multi-GB
+feature files: the client accumulates memory across adds within one process.
+Here, files larger than --max-part-mb are stream-split into numbered
+.partNNNN chunks (constant memory) and EVERY item is uploaded by a fresh
+subprocess into one incremental artifact, so client memory resets per part.
+Reassemble the parts after download with --reassemble.
 
     python scripts/push_artifact.py                      # default: the Qwen features dir
     python scripts/push_artifact.py <dir> --name my-art  # any directory
@@ -16,6 +19,8 @@ import argparse
 import os
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -79,6 +84,22 @@ def reassemble(root):
     print("reassembled ✓")
 
 
+def upload_one(artifact_name, art_type, file_path, entry_name, project):
+    """Child-process body: add ONE file to the (incremental) artifact."""
+    os.environ.setdefault("WANDB_SILENT", "true")
+    import wandb
+    run = wandb.init(project=project, job_type="upload",
+                     name=f"up-{Path(entry_name).name}"[:64])
+    try:
+        art = wandb.Artifact(artifact_name, type=art_type, incremental=True)
+    except TypeError:  # very old wandb without incremental
+        art = wandb.Artifact(artifact_name, type=art_type)
+    art.add_file(str(file_path), name=entry_name, skip_cache=True)
+    run.log_artifact(art)
+    art.wait()  # block until this part is actually uploaded
+    run.finish()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("path", nargs="?", default=DEFAULT_DIR,
@@ -90,7 +111,17 @@ def main():
                     help="split files larger than this into parts (default 256)")
     ap.add_argument("--reassemble", action="store_true",
                     help="join .partNNNN files under PATH instead of uploading")
+    # internal: child-process mode (one file per process to bound memory)
+    ap.add_argument("--upload-one", default=None, help=argparse.SUPPRESS)
+    ap.add_argument("--entry-name", default=None, help=argparse.SUPPRESS)
     args = ap.parse_args()
+
+    load_dotenv()
+    project = os.environ.get("WANDB_PROJECT", "emovecllm")
+
+    if args.upload_one:
+        upload_one(args.name, args.type, args.upload_one, args.entry_name, project)
+        return
 
     root = Path(args.path)
     if not root.is_dir():
@@ -100,9 +131,6 @@ def main():
         reassemble(root)
         return
 
-    load_dotenv()
-    import wandb  # after .env so WANDB_API_KEY is picked up
-
     files = sorted(p for p in root.rglob("*") if p.is_file()
                    and ".part" not in p.suffix)
     if not files:
@@ -110,37 +138,46 @@ def main():
 
     name = args.name or re.sub(r"[^A-Za-z0-9._-]", "_",
                                "-".join(root.parts[-2:]) + "-full")
-    project = os.environ.get("WANDB_PROJECT", "emovecllm")
     part_bytes = args.max_part_mb * 1024 * 1024
 
     total_mb = sum(p.stat().st_size for p in files) / 1e6
     print(f"artifact : {project}/{name} ({args.type})")
     print(f"files    : {len(files)}  ({total_mb:.0f} MB)")
 
-    run = wandb.init(project=project, job_type="upload", name=f"upload-{name}")
-    art = wandb.Artifact(name, type=args.type)
     tmpdir = Path(tempfile.mkdtemp(prefix="artparts_", dir=root))
     try:
+        items = []  # (path, entry_name)
         for p in files:
             rel = p.relative_to(root).as_posix()
-            size = p.stat().st_size
-            if size > part_bytes:
-                print(f"  + {rel}  ({size / 1e6:.0f} MB) — splitting…")
+            if p.stat().st_size > part_bytes:
+                print(f"splitting {rel} ({p.stat().st_size / 1e6:.0f} MB)…")
                 for part in split_file(p, part_bytes, tmpdir):
-                    print(f"      {part.name}")
-                    art.add_file(str(part), name=f"{rel}.{part.name.split('.')[-1]}",
-                                 skip_cache=True)
+                    items.append((part, f"{rel}.{part.name.split('.')[-1]}"))
             else:
-                print(f"  + {rel}  ({size / 1e6:.0f} MB)")
-                art.add_file(str(p), name=rel, skip_cache=True)
-        print("uploading…")
-        run.log_artifact(art)
-        art.wait()  # block until the upload is actually finished
+                items.append((p, rel))
+
+        for i, (path, entry) in enumerate(items, 1):
+            print(f"[{i}/{len(items)}] {entry}  "
+                  f"({path.stat().st_size / 1e6:.0f} MB)", flush=True)
+            cmd = [sys.executable, os.path.abspath(__file__),
+                   "--upload-one", str(path), "--entry-name", entry,
+                   "--name", name, "--type", args.type]
+            for attempt in (1, 2, 3):
+                if subprocess.run(cmd).returncode == 0:
+                    break
+                print(f"    attempt {attempt} failed — retrying…", flush=True)
+            else:
+                raise SystemExit(f"upload failed repeatedly: {entry}")
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
-    run.finish()
+
+    try:
+        import wandb
+        entity = wandb.Api().default_entity
+    except Exception:
+        entity = "<entity>"
     print(f"\ndone — download with:\n  wandb artifact get "
-          f"\"{run.entity}/{project}/{name}:latest\" --root <dest>\n"
+          f"\"{entity}/{project}/{name}:latest\" --root <dest>\n"
           f"then:  python scripts/push_artifact.py --reassemble <dest>")
 
 
