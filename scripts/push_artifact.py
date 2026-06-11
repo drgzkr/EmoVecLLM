@@ -37,7 +37,12 @@ def load_dotenv(path=".env"):
         if not line or line.startswith("#") or "=" not in line:
             continue
         k, v = line.split("=", 1)
-        k, v = k.strip(), v.strip().strip("'\"")
+        k, v = k.strip(), v.strip()
+        if v[:1] in ("'", '"'):                      # quoted value: take up to the closing quote
+            end = v.find(v[0], 1)
+            v = v[1:end] if end > 0 else v[1:]
+        else:                                        # bash-style inline comment: VAR=val  # note
+            v = re.split(r"\s+#", v, 1)[0].strip()
         if k and v and k not in os.environ:
             os.environ[k] = v
 
