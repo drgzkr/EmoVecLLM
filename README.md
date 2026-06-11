@@ -83,4 +83,4 @@ Independent academic replication. Models pulled from Hugging Face retain their o
 
 ## Author
 
-[Dora Gözükara](https://github.com/drgzkr) — PhD candidate, Donders Institute. The replication feeds into a downstream cognitive-neuroscience programme (naturalistic emotional fMRI encoding with Renée Visser's lab).
+[Dora Gözükara](https://github.com/drgzkr) — Postdoc, Amsterdam Emotional Memory Lab, University of Amsterdam. The replication feeds into a downstream cognitive-neuroscience programme (naturalistic emotional fMRI encoding with Renée Visser).
